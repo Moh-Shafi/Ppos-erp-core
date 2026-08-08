@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StoreController;
@@ -35,6 +36,23 @@ Route::prefix('v1')->group(function () {
 
         // Products
         Route::apiResource('products', ProductController::class);
+
+        // Customers
+        Route::prefix('customers')->group(function () {
+            Route::get('/', [CustomerController::class, 'index'])
+                ->middleware('permission:customers.view');
+            Route::get('/{id}', [CustomerController::class, 'show'])
+                ->middleware('permission:customers.view')
+                ->where('id', '[0-9]+');
+            Route::post('/', [CustomerController::class, 'store'])
+                ->middleware('permission:customers.manage');
+            Route::put('/{id}', [CustomerController::class, 'update'])
+                ->middleware('permission:customers.manage')
+                ->where('id', '[0-9]+');
+            Route::delete('/{id}', [CustomerController::class, 'destroy'])
+                ->middleware('permission:customers.manage')
+                ->where('id', '[0-9]+');
+        });
 
         // Inventory
         Route::prefix('inventory')->group(function () {

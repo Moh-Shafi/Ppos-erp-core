@@ -117,3 +117,16 @@ export interface InventoryMovement {
   created_at: string
   updated_at: string
 }
+
+export interface Customer {
+  id: number
+  tenant_id: number
+  name: string
+  phone: string | null
+  email: string | null
+  address: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}

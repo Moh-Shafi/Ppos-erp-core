@@ -9,6 +9,7 @@ const navItems = [
   { to: '/products', label: 'Produk' },
   { to: '/categories', label: 'Kategori' },
   { to: '/inventory', label: 'Inventory' },
+  { to: '/customers', label: 'Customers' },
   { to: '/settings/store', label: 'Pengaturan Toko' },
   { to: '/settings/account', label: 'Akun' },
 ]
