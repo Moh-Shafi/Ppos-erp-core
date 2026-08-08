@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\TenantController;
@@ -34,5 +35,18 @@ Route::prefix('v1')->group(function () {
 
         // Products
         Route::apiResource('products', ProductController::class);
+
+        // Inventory
+        Route::prefix('inventory')->group(function () {
+            Route::get('/', [InventoryController::class, 'index'])
+                ->middleware('permission:inventory.view');
+            Route::get('/movements', [InventoryController::class, 'movements'])
+                ->middleware('permission:inventory.view');
+            Route::get('/{productId}', [InventoryController::class, 'show'])
+                ->middleware('permission:inventory.view')
+                ->where('productId', '[0-9]+');
+            Route::post('/adjust', [InventoryController::class, 'adjust'])
+                ->middleware('permission:inventory.manage');
+        });
     });
 });

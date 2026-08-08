@@ -62,6 +62,7 @@ class RbacSeeder extends Seeder
             Permission::whereIn('slug', [
                 'products.view',
                 'categories.view',
+                'inventory.view',
                 'sales.view', 'sales.manage',
                 'customers.manage',
                 'pos.use',
