@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\TenantController;
 use Illuminate\Support\Facades\Route;
@@ -26,5 +28,11 @@ Route::prefix('v1')->group(function () {
 
         // Stores
         Route::apiResource('stores', StoreController::class);
+
+        // Categories
+        Route::apiResource('categories', CategoryController::class);
+
+        // Products
+        Route::apiResource('products', ProductController::class);
     });
 });

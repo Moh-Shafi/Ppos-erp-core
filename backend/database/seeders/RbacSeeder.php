@@ -24,6 +24,8 @@ class RbacSeeder extends Seeder
         $permissions = [
             ['name' => 'Manage Products', 'slug' => 'products.manage'],
             ['name' => 'View Products', 'slug' => 'products.view'],
+            ['name' => 'Manage Categories', 'slug' => 'categories.manage'],
+            ['name' => 'View Categories', 'slug' => 'categories.view'],
             ['name' => 'Manage Sales', 'slug' => 'sales.manage'],
             ['name' => 'View Sales', 'slug' => 'sales.view'],
             ['name' => 'Manage Inventory', 'slug' => 'inventory.manage'],
@@ -46,6 +48,7 @@ class RbacSeeder extends Seeder
         $manager->permissions()->sync(
             Permission::whereIn('slug', [
                 'products.view', 'products.manage',
+                'categories.view', 'categories.manage',
                 'sales.view', 'sales.manage',
                 'inventory.view', 'inventory.manage',
                 'customers.manage',
@@ -58,6 +61,7 @@ class RbacSeeder extends Seeder
         $cashier->permissions()->sync(
             Permission::whereIn('slug', [
                 'products.view',
+                'categories.view',
                 'sales.view', 'sales.manage',
                 'customers.manage',
                 'pos.use',
@@ -68,6 +72,7 @@ class RbacSeeder extends Seeder
         $staff->permissions()->sync(
             Permission::whereIn('slug', [
                 'products.view',
+                'categories.view',
                 'inventory.view',
             ])->pluck('id')
         );
