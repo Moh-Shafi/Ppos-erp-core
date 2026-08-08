@@ -1,0 +1,66 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pos_saas_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: pos_saas
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: pos
+      MYSQL_PASSWORD: pos_secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - pos_saas
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: pos_saas_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: pos_saas
+      DB_USERNAME: pos
+      DB_PASSWORD: pos_secret
+    volumes:
+      - ./backend:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - pos_saas
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pos_saas_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - pos_saas
+
+volumes:
+  mysql_data:
+
+networks:
+  pos_saas:
+    driver: bridge
