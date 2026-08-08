@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/Button'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
+  { to: '/products', label: 'Produk' },
+  { to: '/categories', label: 'Kategori' },
   { to: '/settings/store', label: 'Pengaturan Toko' },
   { to: '/settings/account', label: 'Akun' },
 ]

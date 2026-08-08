@@ -9,6 +9,8 @@ import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { StoreSettingsPage } from '@/pages/settings/StoreSettingsPage'
 import { AccountSettingsPage } from '@/pages/settings/AccountSettingsPage'
+import { ProductsPage } from '@/pages/ProductsPage'
+import { CategoriesPage } from '@/pages/CategoriesPage'
 
 function App() {
   const { isAuthenticated, user, setUser, logout } = useAuthStore()
@@ -28,6 +30,8 @@ function App() {
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
         <Route path="/register" element={<GuestRoute><RegisterPage /></GuestRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+        <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
         <Route path="/settings/store" element={<ProtectedRoute><StoreSettingsPage /></ProtectedRoute>} />
         <Route path="/settings/account" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
