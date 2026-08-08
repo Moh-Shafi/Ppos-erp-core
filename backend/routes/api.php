@@ -47,6 +47,8 @@ Route::prefix('v1')->group(function () {
                 ->where('productId', '[0-9]+');
             Route::post('/adjust', [InventoryController::class, 'adjust'])
                 ->middleware('permission:inventory.manage');
+            Route::post('/transfer', [InventoryController::class, 'transfer'])
+                ->middleware('permission:inventory.manage');
         });
     });
 });

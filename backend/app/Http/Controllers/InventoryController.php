@@ -121,4 +121,55 @@ class InventoryController extends Controller
 
         return response()->json($movements);
     }
+
+    public function transfer(Request $request)
+    {
+        $tenantId = $request->user()->tenant_id;
+
+        $validated = $request->validate([
+            'from_store_id' => [
+                'required',
+                'integer',
+                'different:to_store_id',
+                Rule::exists('stores', 'id')->where('tenant_id', $tenantId),
+            ],
+            'to_store_id' => [
+                'required',
+                'integer',
+                'different:from_store_id',
+                Rule::exists('stores', 'id')->where('tenant_id', $tenantId),
+            ],
+            'product_id' => [
+                'required',
+                'integer',
+                Rule::exists('products', 'id')->where('tenant_id', $tenantId),
+            ],
+            'quantity' => 'required|integer|min:1',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        $fromStore = Store::findOrFail($validated['from_store_id']);
+        $toStore = Store::findOrFail($validated['to_store_id']);
+        $product = Product::findOrFail($validated['product_id']);
+
+        try {
+            $result = $this->inventoryService->transfer(
+                $fromStore,
+                $toStore,
+                $product,
+                $validated['quantity'],
+                $validated['note'] ?? null,
+            );
+
+            return response()->json([
+                'message' => 'Transfer completed successfully',
+                'out_movement' => $result['out']->load(['product', 'store']),
+                'in_movement' => $result['in']->load(['product', 'store']),
+            ], 201);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
 }

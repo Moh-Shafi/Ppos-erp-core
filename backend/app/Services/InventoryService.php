@@ -177,6 +177,163 @@ class InventoryService
     }
 
     /**
+     * Transfer stock of a product from one store to another.
+     * Both stores must belong to the same tenant.
+     * Uses ordered locking (by store ID) to prevent deadlocks.
+     *
+     * @param  Store  $fromStore  Source store (must belong to tenant)
+     * @param  Store  $toStore  Destination store (must belong to tenant)
+     * @param  Product  $product  Product (must belong to tenant)
+     * @param  int  $quantity  Must be > 0
+     * @param  string|null  $note  Optional note
+     * @return array{out: InventoryMovement, in: InventoryMovement}
+     * @throws \InvalidArgumentException  When stores are same, cross-tenant, insufficient stock, or quantity invalid
+     * @throws \Illuminate\Database\QueryException  On DB errors
+     */
+    public function transfer(
+        Store $fromStore,
+        Store $toStore,
+        Product $product,
+        int $quantity,
+        ?string $note = null,
+    ): array {
+        if ($quantity <= 0) {
+            throw new \InvalidArgumentException('Quantity must be greater than 0');
+        }
+
+        if ($fromStore->id === $toStore->id) {
+            throw new \InvalidArgumentException('Source and destination stores must be different');
+        }
+
+        $this->validateOwnershipForTransfer($fromStore, $toStore, $product);
+
+        $user = Auth::user();
+        $tenantId = $user->tenant_id;
+
+        // Order locks by store ID to prevent deadlocks
+        $firstStoreId = min($fromStore->id, $toStore->id);
+        $secondStoreId = max($fromStore->id, $toStore->id);
+
+        return DB::transaction(function () use ($fromStore, $toStore, $product, $quantity, $note, $user, $tenantId, $firstStoreId, $secondStoreId) {
+            // Lock both inventory rows in consistent order
+            $inventories = Inventory::withoutTenantScope()
+                ->where('tenant_id', $tenantId)
+                ->where('product_id', $product->id)
+                ->whereIn('store_id', [$firstStoreId, $secondStoreId])
+                ->orderBy('store_id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('store_id');
+
+            // Get or create source inventory
+            $sourceInv = $inventories->get($fromStore->id);
+            if (!$sourceInv) {
+                $sourceInv = new Inventory;
+                $sourceInv->tenant_id = $tenantId;
+                $sourceInv->store_id = $fromStore->id;
+                $sourceInv->product_id = $product->id;
+                $sourceInv->quantity = 0;
+                $sourceInv->minimum_quantity = 0;
+                $sourceInv->save();
+            }
+
+            // Get or create destination inventory
+            $destInv = $inventories->get($toStore->id);
+            if (!$destInv) {
+                $destInv = new Inventory;
+                $destInv->tenant_id = $tenantId;
+                $destInv->store_id = $toStore->id;
+                $destInv->product_id = $product->id;
+                $destInv->quantity = 0;
+                $destInv->minimum_quantity = 0;
+                $destInv->save();
+            }
+
+            // Check sufficient stock
+            if ($sourceInv->quantity < $quantity) {
+                throw new \InvalidArgumentException(
+                    "Insufficient stock. Current: {$sourceInv->quantity}, Requested transfer: {$quantity}"
+                );
+            }
+
+            // Apply transfer: decrease source, increase destination
+            $sourceBefore = $sourceInv->quantity;
+            $sourceAfter = $sourceBefore - $quantity;
+            $destBefore = $destInv->quantity;
+            $destAfter = $destBefore + $quantity;
+
+            $sourceInv->quantity = $sourceAfter;
+            $sourceInv->save();
+
+            $destInv->quantity = $destAfter;
+            $destInv->save();
+
+            // Create transfer_out movement
+            $outMovement = new InventoryMovement;
+            $outMovement->tenant_id = $tenantId;
+            $outMovement->store_id = $fromStore->id;
+            $outMovement->product_id = $product->id;
+            $outMovement->user_id = $user->id;
+            $outMovement->type = 'transfer_out';
+            $outMovement->quantity = -$quantity;
+            $outMovement->before_quantity = $sourceBefore;
+            $outMovement->after_quantity = $sourceAfter;
+            $outMovement->note = $note;
+            $outMovement->save();
+
+            // Create transfer_in movement
+            $inMovement = new InventoryMovement;
+            $inMovement->tenant_id = $tenantId;
+            $inMovement->store_id = $toStore->id;
+            $inMovement->product_id = $product->id;
+            $inMovement->user_id = $user->id;
+            $inMovement->type = 'transfer_in';
+            $inMovement->quantity = $quantity;
+            $inMovement->before_quantity = $destBefore;
+            $inMovement->after_quantity = $destAfter;
+            $inMovement->note = $note;
+            $inMovement->save();
+
+            return ['out' => $outMovement, 'in' => $inMovement];
+        });
+    }
+
+    /**
+     * Validate that both stores and the product belong to the authenticated user's tenant.
+     *
+     * @throws \InvalidArgumentException  When any entity belongs to a different tenant
+     */
+    private function validateOwnershipForTransfer(Store $fromStore, Store $toStore, Product $product): void
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            throw new \InvalidArgumentException('Unauthenticated');
+        }
+
+        $tenantId = $user->tenant_id;
+
+        $storeIds = [$fromStore->id, $toStore->id];
+        $storeCount = Store::withoutTenantScope()
+            ->whereIn('id', $storeIds)
+            ->where('tenant_id', $tenantId)
+            ->count();
+
+        if ($storeCount !== 2) {
+            throw new \InvalidArgumentException('One or both stores do not belong to your tenant');
+        }
+
+        $productBelongsToTenant = Product::withoutTenantScope()
+            ->where('id', $product->id)
+            ->where('tenant_id', $tenantId)
+            ->exists();
+
+        if (!$productBelongsToTenant) {
+            throw new \InvalidArgumentException('Product does not belong to your tenant');
+        }
+    }
+
+    /**
      * Validate that both store and product belong to the authenticated user's tenant.
      *
      * @throws \InvalidArgumentException  When store or product belongs to a different tenant
