@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TenantController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,6 +52,23 @@ Route::prefix('v1')->group(function () {
                 ->where('id', '[0-9]+');
             Route::delete('/{id}', [CustomerController::class, 'destroy'])
                 ->middleware('permission:customers.manage')
+                ->where('id', '[0-9]+');
+        });
+
+        // Suppliers
+        Route::prefix('suppliers')->group(function () {
+            Route::get('/', [SupplierController::class, 'index'])
+                ->middleware('permission:suppliers.view');
+            Route::get('/{id}', [SupplierController::class, 'show'])
+                ->middleware('permission:suppliers.view')
+                ->where('id', '[0-9]+');
+            Route::post('/', [SupplierController::class, 'store'])
+                ->middleware('permission:suppliers.manage');
+            Route::put('/{id}', [SupplierController::class, 'update'])
+                ->middleware('permission:suppliers.manage')
+                ->where('id', '[0-9]+');
+            Route::delete('/{id}', [SupplierController::class, 'destroy'])
+                ->middleware('permission:suppliers.manage')
                 ->where('id', '[0-9]+');
         });
 
