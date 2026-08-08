@@ -8,6 +8,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/products', label: 'Produk' },
   { to: '/categories', label: 'Kategori' },
+  { to: '/inventory', label: 'Inventory' },
   { to: '/settings/store', label: 'Pengaturan Toko' },
   { to: '/settings/account', label: 'Akun' },
 ]

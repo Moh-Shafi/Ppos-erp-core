@@ -11,6 +11,9 @@ import { StoreSettingsPage } from '@/pages/settings/StoreSettingsPage'
 import { AccountSettingsPage } from '@/pages/settings/AccountSettingsPage'
 import { ProductsPage } from '@/pages/ProductsPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
+import { InventoryPage } from '@/pages/InventoryPage'
+import { MovementsPage } from '@/pages/MovementsPage'
+import { TransferPage } from '@/pages/TransferPage'
 
 function App() {
   const { isAuthenticated, user, setUser, logout } = useAuthStore()
@@ -32,6 +35,9 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
         <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
+        <Route path="/inventory/movements" element={<ProtectedRoute><MovementsPage /></ProtectedRoute>} />
+        <Route path="/inventory/transfer" element={<ProtectedRoute><TransferPage /></ProtectedRoute>} />
         <Route path="/settings/store" element={<ProtectedRoute><StoreSettingsPage /></ProtectedRoute>} />
         <Route path="/settings/account" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

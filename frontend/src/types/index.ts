@@ -84,3 +84,36 @@ export interface AuthResponse {
   token: string
   user: User
 }
+
+export interface Inventory {
+  id: number
+  tenant_id: number
+  store_id: number
+  product_id: number
+  quantity: number
+  minimum_quantity: number
+  store?: Store
+  product?: Product
+  created_at: string
+  updated_at: string
+}
+
+export interface InventoryMovement {
+  id: number
+  tenant_id: number
+  store_id: number
+  product_id: number
+  user_id: number | null
+  type: string
+  quantity: number
+  before_quantity: number
+  after_quantity: number
+  reference_type: string | null
+  reference_id: number | null
+  note: string | null
+  store?: Store
+  product?: Product
+  user?: User | null
+  created_at: string
+  updated_at: string
+}
