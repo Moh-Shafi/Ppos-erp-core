@@ -34,6 +34,8 @@ class RbacSeeder extends Seeder
             ['name' => 'View Customers', 'slug' => 'customers.view'],
             ['name' => 'Manage Suppliers', 'slug' => 'suppliers.manage'],
             ['name' => 'View Suppliers', 'slug' => 'suppliers.view'],
+            ['name' => 'Manage Purchases', 'slug' => 'purchases.manage'],
+            ['name' => 'View Purchases', 'slug' => 'purchases.view'],
             ['name' => 'View Reports', 'slug' => 'reports.view'],
             ['name' => 'Manage Settings', 'slug' => 'settings.manage'],
             ['name' => 'Manage Users', 'slug' => 'users.manage'],
@@ -56,6 +58,7 @@ class RbacSeeder extends Seeder
                 'inventory.view', 'inventory.manage',
                 'customers.view', 'customers.manage',
                 'suppliers.view', 'suppliers.manage',
+                'purchases.view', 'purchases.manage',
                 'reports.view',
                 'pos.use',
             ])->pluck('id')
@@ -70,6 +73,7 @@ class RbacSeeder extends Seeder
                 'sales.view', 'sales.manage',
                 'customers.view', 'customers.manage',
                 'suppliers.view',
+                'purchases.view',
                 'pos.use',
             ])->pluck('id')
         );

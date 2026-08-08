@@ -5,6 +5,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TenantController;
@@ -69,6 +70,32 @@ Route::prefix('v1')->group(function () {
                 ->where('id', '[0-9]+');
             Route::delete('/{id}', [SupplierController::class, 'destroy'])
                 ->middleware('permission:suppliers.manage')
+                ->where('id', '[0-9]+');
+        });
+
+        // Purchases
+        Route::prefix('purchases')->group(function () {
+            Route::get('/', [PurchaseController::class, 'index'])
+                ->middleware('permission:purchases.view');
+            Route::get('/{id}', [PurchaseController::class, 'show'])
+                ->middleware('permission:purchases.view')
+                ->where('id', '[0-9]+');
+            Route::post('/', [PurchaseController::class, 'store'])
+                ->middleware('permission:purchases.manage');
+            Route::put('/{id}', [PurchaseController::class, 'update'])
+                ->middleware('permission:purchases.manage')
+                ->where('id', '[0-9]+');
+            Route::delete('/{id}', [PurchaseController::class, 'destroy'])
+                ->middleware('permission:purchases.manage')
+                ->where('id', '[0-9]+');
+            Route::post('/{id}/order', [PurchaseController::class, 'order'])
+                ->middleware('permission:purchases.manage')
+                ->where('id', '[0-9]+');
+            Route::post('/{id}/receive', [PurchaseController::class, 'receive'])
+                ->middleware('permission:purchases.manage')
+                ->where('id', '[0-9]+');
+            Route::post('/{id}/cancel', [PurchaseController::class, 'cancel'])
+                ->middleware('permission:purchases.manage')
                 ->where('id', '[0-9]+');
         });
 

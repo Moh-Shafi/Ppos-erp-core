@@ -16,6 +16,7 @@ import { MovementsPage } from '@/pages/MovementsPage'
 import { TransferPage } from '@/pages/TransferPage'
 import { CustomersPage } from '@/pages/CustomersPage'
 import { SuppliersPage } from '@/pages/SuppliersPage'
+import { PurchasesPage } from '@/pages/PurchasesPage'
 
 function App() {
   const { isAuthenticated, user, setUser, logout } = useAuthStore()
@@ -39,6 +40,7 @@ function App() {
         <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><CustomersPage /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute><SuppliersPage /></ProtectedRoute>} />
+        <Route path="/purchases" element={<ProtectedRoute><PurchasesPage /></ProtectedRoute>} />
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
         <Route path="/inventory/movements" element={<ProtectedRoute><MovementsPage /></ProtectedRoute>} />
         <Route path="/inventory/transfer" element={<ProtectedRoute><TransferPage /></ProtectedRoute>} />

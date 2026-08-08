@@ -145,3 +145,39 @@ export interface Supplier {
   created_at: string
   updated_at: string
 }
+
+export interface PurchaseItem {
+  id: number
+  purchase_id: number
+  product_id: number
+  quantity: number
+  unit_cost: string
+  discount: string
+  tax: string
+  total: string
+  product?: Product
+  created_at: string
+  updated_at: string
+}
+
+export interface Purchase {
+  id: number
+  tenant_id: number
+  supplier_id: number
+  store_id: number
+  created_by: number
+  purchase_number: string
+  status: 'draft' | 'ordered' | 'received' | 'cancelled'
+  purchase_date: string
+  expected_date: string | null
+  subtotal: string
+  discount: string
+  tax: string
+  total: string
+  notes: string | null
+  supplier?: Supplier
+  store?: Store
+  items?: PurchaseItem[]
+  created_at: string
+  updated_at: string
+}
