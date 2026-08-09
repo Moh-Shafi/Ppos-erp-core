@@ -34,6 +34,11 @@ class User extends Authenticatable
         return $this->hasMany(Purchase::class, 'created_by');
     }
 
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class, 'cashier_id');
+    }
+
     public function hasPermission(string $permissionSlug): bool
     {
         if (!$this->role) {

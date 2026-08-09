@@ -32,4 +32,9 @@ class Store extends Model
     {
         return $this->hasMany(Purchase::class);
     }
+
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class);
+    }
 }

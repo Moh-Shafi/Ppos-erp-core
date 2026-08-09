@@ -6,23 +6,27 @@ use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Customer extends Model
+class Payment extends Model
 {
     use HasFactory, BelongsToTenant;
 
     protected $fillable = [
-        'name',
-        'phone',
-        'email',
-        'address',
-        'notes',
-        'is_active',
+        'sale_id',
+        'payment_method',
+        'amount',
+        'change_amount',
+        'payment_reference',
+        'status',
+        'metadata',
+        'payment_date',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'amount' => 'decimal:2',
+        'change_amount' => 'decimal:2',
+        'metadata' => 'array',
+        'payment_date' => 'datetime',
     ];
 
     public function tenant(): BelongsTo
@@ -30,8 +34,8 @@ class Customer extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-    public function sales(): HasMany
+    public function sale(): BelongsTo
     {
-        return $this->hasMany(Sale::class);
+        return $this->belongsTo(Sale::class);
     }
 }
