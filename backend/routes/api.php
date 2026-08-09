@@ -7,6 +7,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseReturnController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TenantController;
@@ -117,6 +118,20 @@ Route::prefix('v1')->group(function () {
                 ->where('id', '[0-9]+');
             Route::delete('/{id}', [PurchaseReturnController::class, 'destroy'])
                 ->middleware('permission:purchases.manage')
+                ->where('id', '[0-9]+');
+        });
+
+        // Sales / POS
+        Route::prefix('sales')->group(function () {
+            Route::get('/', [SaleController::class, 'index'])
+                ->middleware('permission:sales.view');
+            Route::get('/{id}', [SaleController::class, 'show'])
+                ->middleware('permission:sales.view')
+                ->where('id', '[0-9]+');
+            Route::post('/checkout', [SaleController::class, 'checkout'])
+                ->middleware('permission:sales.manage');
+            Route::post('/{id}/cancel', [SaleController::class, 'cancel'])
+                ->middleware('permission:sales.manage')
                 ->where('id', '[0-9]+');
         });
 
