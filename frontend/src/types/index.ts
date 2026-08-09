@@ -181,3 +181,39 @@ export interface Purchase {
   created_at: string
   updated_at: string
 }
+
+export interface PurchaseReturnItem {
+  id: number
+  purchase_return_id: number
+  product_id: number
+  purchase_item_id: number
+  quantity: number
+  unit_cost: string
+  discount: string
+  tax: string
+  total: string
+  product?: Product
+  created_at: string
+  updated_at: string
+}
+
+export interface PurchaseReturn {
+  id: number
+  tenant_id: number
+  purchase_id: number
+  store_id: number
+  created_by: number
+  return_number: string
+  status: 'draft' | 'completed' | 'cancelled'
+  return_date: string
+  subtotal: string
+  discount: string
+  tax: string
+  total: string
+  notes: string | null
+  purchase?: Purchase
+  store?: Store
+  items?: PurchaseReturnItem[]
+  created_at: string
+  updated_at: string
+}

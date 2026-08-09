@@ -12,6 +12,7 @@ const navItems = [
   { to: '/customers', label: 'Customers' },
   { to: '/suppliers', label: 'Suppliers' },
   { to: '/purchases', label: 'Purchases' },
+  { to: '/purchase-returns', label: 'Returns' },
   { to: '/settings/store', label: 'Pengaturan Toko' },
   { to: '/settings/account', label: 'Akun' },
 ]

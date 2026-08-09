@@ -8,17 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Purchase extends Model
+class PurchaseReturn extends Model
 {
     use HasFactory, BelongsToTenant;
 
     protected $fillable = [
-        'supplier_id',
+        'purchase_id',
         'store_id',
-        'purchase_number',
+        'return_number',
         'status',
-        'purchase_date',
-        'expected_date',
+        'return_date',
         'subtotal',
         'discount',
         'tax',
@@ -27,8 +26,7 @@ class Purchase extends Model
     ];
 
     protected $casts = [
-        'purchase_date' => 'date',
-        'expected_date' => 'date',
+        'return_date' => 'date',
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
         'tax' => 'decimal:2',
@@ -40,9 +38,9 @@ class Purchase extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-    public function supplier(): BelongsTo
+    public function purchase(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Purchase::class);
     }
 
     public function store(): BelongsTo
@@ -57,11 +55,6 @@ class Purchase extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(PurchaseItem::class);
-    }
-
-    public function returns(): HasMany
-    {
-        return $this->hasMany(PurchaseReturn::class);
+        return $this->hasMany(PurchaseReturnItem::class);
     }
 }

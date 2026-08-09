@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TenantController;
@@ -95,6 +96,26 @@ Route::prefix('v1')->group(function () {
                 ->middleware('permission:purchases.manage')
                 ->where('id', '[0-9]+');
             Route::post('/{id}/cancel', [PurchaseController::class, 'cancel'])
+                ->middleware('permission:purchases.manage')
+                ->where('id', '[0-9]+');
+        });
+
+        // Purchase Returns
+        Route::prefix('purchase-returns')->group(function () {
+            Route::get('/', [PurchaseReturnController::class, 'index'])
+                ->middleware('permission:purchases.view');
+            Route::get('/{id}', [PurchaseReturnController::class, 'show'])
+                ->middleware('permission:purchases.view')
+                ->where('id', '[0-9]+');
+            Route::post('/', [PurchaseReturnController::class, 'store'])
+                ->middleware('permission:purchases.manage');
+            Route::post('/{id}/complete', [PurchaseReturnController::class, 'complete'])
+                ->middleware('permission:purchases.manage')
+                ->where('id', '[0-9]+');
+            Route::post('/{id}/cancel', [PurchaseReturnController::class, 'cancel'])
+                ->middleware('permission:purchases.manage')
+                ->where('id', '[0-9]+');
+            Route::delete('/{id}', [PurchaseReturnController::class, 'destroy'])
                 ->middleware('permission:purchases.manage')
                 ->where('id', '[0-9]+');
         });
