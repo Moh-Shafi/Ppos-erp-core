@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sale;
+use App\Services\PaymentService;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
 
@@ -10,6 +11,7 @@ class SaleController extends Controller
 {
     public function __construct(
         private SaleService $saleService,
+        private PaymentService $paymentService,
     ) {}
 
     public function index(Request $request)
@@ -100,5 +102,32 @@ class SaleController extends Controller
         } catch (\DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+    }
+
+    public function addPayment(Request $request, int $id)
+    {
+        $sale = Sale::findOrFail($id);
+
+        $validated = $request->validate([
+            'payment_method' => 'required|string|in:cash,qris,card,bank_transfer',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_reference' => 'nullable|string|max:255',
+            'idempotency_key' => 'nullable|string|max:255',
+            'metadata' => 'nullable|array',
+        ]);
+
+        try {
+            $payment = $this->paymentService->addPayment($sale, $validated);
+            return response()->json($payment, 201);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function listPayments(int $id)
+    {
+        $sale = Sale::findOrFail($id);
+
+        return response()->json($sale->payments);
     }
 }

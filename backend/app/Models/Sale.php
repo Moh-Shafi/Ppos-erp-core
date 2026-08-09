@@ -68,4 +68,34 @@ class Sale extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    public function isPaid(): bool
+    {
+        return $this->payment_status === 'paid';
+    }
+
+    public function isPartial(): bool
+    {
+        return $this->payment_status === 'partial';
+    }
+
+    public function isUnpaid(): bool
+    {
+        return $this->payment_status === 'unpaid';
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
+    }
+
+    public function outstandingAmount(): float
+    {
+        return max(0, (float) $this->total - (float) $this->paid_amount);
+    }
+
+    public function successfulPayments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->where('status', 'success');
+    }
 }

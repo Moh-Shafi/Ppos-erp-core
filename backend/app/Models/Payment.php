@@ -17,6 +17,7 @@ class Payment extends Model
         'amount',
         'change_amount',
         'payment_reference',
+        'idempotency_key',
         'status',
         'metadata',
         'payment_date',

@@ -16,6 +16,7 @@ class SaleService
 {
     public function __construct(
         private InventoryService $inventoryService,
+        private PaymentService $paymentService,
     ) {}
 
     /**
@@ -160,7 +161,6 @@ class SaleService
             }
 
             $totalPaid = 0;
-            $paymentData = [];
             foreach ($data['payments'] as $pay) {
                 $amount = (float) $pay['amount'];
                 if ($amount <= 0) {
@@ -171,12 +171,6 @@ class SaleService
                     throw new \DomainException("Invalid payment method: {$pay['payment_method']}");
                 }
                 $totalPaid += $amount;
-                $paymentData[] = [
-                    'payment_method' => $pay['payment_method'],
-                    'amount' => $amount,
-                    'payment_reference' => $pay['payment_reference'] ?? null,
-                    'metadata' => $pay['metadata'] ?? null,
-                ];
             }
 
             // Determine payment status
@@ -238,20 +232,8 @@ class SaleService
                 );
             }
 
-            // --- Create Payments ---
-            foreach ($paymentData as $pay) {
-                $payment = new Payment;
-                $payment->tenant_id = $tenantId;
-                $payment->sale_id = $sale->id;
-                $payment->payment_method = $pay['payment_method'];
-                $payment->amount = $pay['amount'];
-                $payment->change_amount = 0; // change is on sale level
-                $payment->payment_reference = $pay['payment_reference'];
-                $payment->status = 'success';
-                $payment->metadata = $pay['metadata'];
-                $payment->payment_date = now();
-                $payment->save();
-            }
+            // --- Create Payments (via PaymentService for idempotency) ---
+            $this->paymentService->createForCheckout($sale, $data['payments'], $tenantId);
 
             return $sale->fresh(['items.product', 'payments', 'store', 'cashier', 'customer']);
         });
@@ -269,6 +251,9 @@ class SaleService
 
         return DB::transaction(function () use ($sale) {
             $sale->load(['items.product', 'store']);
+
+            // Refund all successful payments
+            $this->paymentService->refundPayments($sale, $sale->tenant_id);
 
             // Restore inventory for each item
             foreach ($sale->items as $item) {

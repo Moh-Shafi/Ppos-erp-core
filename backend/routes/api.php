@@ -133,6 +133,12 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/cancel', [SaleController::class, 'cancel'])
                 ->middleware('permission:sales.manage')
                 ->where('id', '[0-9]+');
+            Route::get('/{id}/payments', [SaleController::class, 'listPayments'])
+                ->middleware('permission:sales.view')
+                ->where('id', '[0-9]+');
+            Route::post('/{id}/payments', [SaleController::class, 'addPayment'])
+                ->middleware('permission:sales.manage')
+                ->where('id', '[0-9]+');
         });
 
         // Inventory
