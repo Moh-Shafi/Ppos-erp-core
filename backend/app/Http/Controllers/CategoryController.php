@@ -3,10 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Services\CategoryService;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
+    public function __construct(
+        private readonly CategoryService $categoryService = new CategoryService(),
+    ) {}
+
     public function index(Request $request)
     {
         $query = Category::query();
@@ -23,10 +28,27 @@ class CategoryController extends Controller
             $query->where('is_active', filter_var($request->get('is_active'), FILTER_VALIDATE_BOOLEAN));
         }
 
+        if ($request->has('parent_id')) {
+            $parentId = $request->get('parent_id');
+            if ($parentId === 'null' || $parentId === '') {
+                $query->whereNull('parent_id');
+            } else {
+                $query->where('parent_id', (int) $parentId);
+            }
+        }
+
         $perPage = min((int) $request->get('per_page', 20), 100);
-        $categories = $query->orderBy('name')->paginate($perPage);
+        $categories = $query->orderBy('sort_order')->orderBy('name')->paginate($perPage);
 
         return response()->json($categories);
+    }
+
+    public function tree(Request $request)
+    {
+        $tenantId = $request->user()->tenant_id;
+        $tree = $this->categoryService->getTree($tenantId);
+
+        return response()->json(['tree' => $tree]);
     }
 
     public function store(Request $request)
@@ -35,12 +57,17 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'is_active' => 'boolean',
+            'parent_id' => 'nullable|integer',
+            'sort_order' => 'nullable|integer',
         ]);
 
-        $validated['slug'] = str()->slug($validated['name']);
-        $validated['is_active'] = $validated['is_active'] ?? true;
-
-        $category = Category::create($validated);
+        try {
+            $category = $this->categoryService->createCategory($validated, $request->user()->tenant_id);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getCode() ?: 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => $e->getMessage()], 404);
+        }
 
         return response()->json([
             'message' => 'Category created successfully',
@@ -50,7 +77,7 @@ class CategoryController extends Controller
 
     public function show(Request $request, $id)
     {
-        $category = Category::findOrFail($id);
+        $category = Category::with('parent', 'children')->findOrFail($id);
 
         return response()->json([
             'category' => $category,
@@ -59,37 +86,33 @@ class CategoryController extends Controller
 
     public function update(Request $request, $id)
     {
-        $category = Category::findOrFail($id);
-
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'is_active' => 'sometimes|boolean',
+            'parent_id' => 'nullable|integer',
+            'sort_order' => 'nullable|integer',
         ]);
 
-        if (isset($validated['name'])) {
-            $validated['slug'] = str()->slug($validated['name']);
+        try {
+            $category = $this->categoryService->updateCategory($id, $validated, $request->user()->tenant_id);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getCode() ?: 422);
         }
-
-        $category->update($validated);
 
         return response()->json([
             'message' => 'Category updated successfully',
-            'category' => $category->fresh(),
+            'category' => $category,
         ]);
     }
 
     public function destroy(Request $request, $id)
     {
-        $category = Category::findOrFail($id);
-
-        if ($category->products()->exists()) {
-            return response()->json([
-                'message' => 'Cannot delete category with existing products',
-            ], 422);
+        try {
+            $this->categoryService->deleteCategory($id, $request->user()->tenant_id);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getCode() ?: 422);
         }
-
-        $category->delete();
 
         return response()->json([
             'message' => 'Category deleted successfully',

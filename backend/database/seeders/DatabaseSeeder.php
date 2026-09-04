@@ -14,7 +14,12 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             PlanSeeder::class,
+            ModuleSeeder::class,
+            BusinessTypeSeeder::class,
             RbacSeeder::class,
+            DefaultAccountsSeeder::class,
+            IntegrationProviderSeeder::class,
+            WebhookEventSeeder::class,
         ]);
     }
 }

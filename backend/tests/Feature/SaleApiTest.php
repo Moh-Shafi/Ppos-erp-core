@@ -622,7 +622,8 @@ class SaleApiTest extends TestCase
             ));
 
         $response->assertStatus(201);
-        $response->assertJsonPath('tenant_id', $this->tenantA->id);
+        $sale = Sale::withoutTenantScope()->find($response->json('id'));
+        $this->assertEquals($this->tenantA->id, $sale->tenant_id);
         $response->assertJsonPath('cashier_id', $this->ownerA->id);
     }
 

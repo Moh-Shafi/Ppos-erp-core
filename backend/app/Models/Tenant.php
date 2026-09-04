@@ -11,7 +11,11 @@ class Tenant extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'plan_id'];
+    protected $fillable = ['name', 'slug', 'plan_id', 'xendit_user_id', 'xendit_fee_rule_id', 'settings'];
+
+    protected $casts = [
+        'settings' => 'array',
+    ];
 
     public function plan(): BelongsTo
     {
@@ -26,5 +30,25 @@ class Tenant extends Model
     public function stores(): HasMany
     {
         return $this->hasMany(Store::class);
+    }
+
+    public function businessProfile()
+    {
+        return $this->hasOne(BusinessProfile::class);
+    }
+
+    public function tenantModules()
+    {
+        return $this->hasMany(TenantModule::class);
+    }
+
+    public function tenantFeatures()
+    {
+        return $this->hasMany(TenantFeature::class);
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class);
     }
 }

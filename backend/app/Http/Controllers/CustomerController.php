@@ -39,7 +39,13 @@ class CustomerController extends Controller
             'address' => 'nullable|string|max:1000',
             'notes' => 'nullable|string|max:2000',
             'is_active' => 'boolean',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'price_list_id' => 'nullable|integer|exists:price_lists,id',
         ]);
+
+        if (!isset($validated['outstanding_balance'])) {
+            $validated['outstanding_balance'] = 0;
+        }
 
         $customer = Customer::create($validated);
         $customer->refresh();
@@ -65,6 +71,8 @@ class CustomerController extends Controller
             'address' => 'nullable|string|max:1000',
             'notes' => 'nullable|string|max:2000',
             'is_active' => 'boolean',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'price_list_id' => 'nullable|integer|exists:price_lists,id',
         ]);
 
         $customer->update($validated);

@@ -16,11 +16,16 @@ class Inventory extends Model
         'product_id',
         'quantity',
         'minimum_quantity',
+        'batch_id',
+        'expiry_date',
+        'maximum_quantity',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'minimum_quantity' => 'integer',
+        'maximum_quantity' => 'integer',
+        'expiry_date' => 'date',
     ];
 
     public function tenant(): BelongsTo
@@ -36,6 +41,11 @@ class Inventory extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(StockBatch::class);
     }
 
     public function movements()

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sale;
 use App\Services\PaymentService;
+use App\Services\RefundService;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,7 @@ class SaleController extends Controller
     public function __construct(
         private SaleService $saleService,
         private PaymentService $paymentService,
+        private RefundService $refundService,
     ) {}
 
     public function index(Request $request)
@@ -58,7 +60,7 @@ class SaleController extends Controller
 
     public function show(int $id)
     {
-        $sale = Sale::with(['store', 'cashier', 'customer', 'items.product', 'payments'])
+        $sale = Sale::with(['store', 'cashier', 'customer', 'items.product', 'items.variant', 'payments', 'refunds.items', 'refunds.refundedBy'])
             ->findOrFail($id);
 
         return response()->json($sale);
@@ -71,11 +73,13 @@ class SaleController extends Controller
             'customer_id' => 'nullable|integer|exists:customers,id',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer|exists:products,id',
+            'items.*.variant_id' => 'nullable|integer|exists:product_variants,id',
             'items.*.quantity' => 'required|integer|min:1',
             'payments' => 'required|array|min:1',
             'payments.*.payment_method' => 'required|string|in:cash,qris,card,bank_transfer',
             'payments.*.amount' => 'required|numeric|min:0.01',
             'payments.*.payment_reference' => 'nullable|string|max:255',
+            'payments.*.idempotency_key' => 'nullable|string|max:255',
             'payments.*.metadata' => 'nullable|array',
             'discount' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
@@ -129,5 +133,46 @@ class SaleController extends Controller
         $sale = Sale::findOrFail($id);
 
         return response()->json($sale->payments);
+    }
+
+    public function listRefunds(int $id)
+    {
+        $sale = Sale::findOrFail($id);
+
+        return response()->json($sale->refunds()->with(['items', 'refundedBy'])->get());
+    }
+
+    public function showRefund(int $saleId, int $refundId)
+    {
+        $sale = Sale::findOrFail($saleId);
+
+        $refund = $sale->refunds()->with(['items', 'refundedBy'])->findOrFail($refundId);
+
+        return response()->json($refund);
+    }
+
+    public function processRefund(Request $request, int $id)
+    {
+        $sale = Sale::findOrFail($id);
+
+        $validated = $request->validate([
+            'type' => 'required|string|in:full,partial',
+            'reason' => 'nullable|string|max:2000',
+            'items' => 'required_if:type,partial|array|min:1',
+            'items.*.sale_item_id' => 'required_with:items|integer|exists:sale_items,id',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+        ]);
+
+        try {
+            if ($validated['type'] === 'full') {
+                $refund = $this->refundService->fullRefund($sale, $validated['reason'] ?? null);
+            } else {
+                $refund = $this->refundService->partialRefund($sale, $validated['items'] ?? [], $validated['reason'] ?? null);
+            }
+
+            return response()->json($refund, 201);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 }

@@ -24,6 +24,8 @@ class Purchase extends Model
         'tax',
         'total',
         'notes',
+        'requisition_id',
+        'grn_id',
     ];
 
     protected $casts = [
@@ -63,5 +65,15 @@ class Purchase extends Model
     public function returns(): HasMany
     {
         return $this->hasMany(PurchaseReturn::class);
+    }
+
+    public function requisition(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseRequisition::class, 'requisition_id');
+    }
+
+    public function grn(): BelongsTo
+    {
+        return $this->belongsTo(GoodsReceiptNote::class, 'grn_id');
     }
 }

@@ -2,14 +2,22 @@
 
 namespace App\Services;
 
+use App\Contracts\PaymentGatewayInterface;
 use App\Models\Payment;
+use App\Models\PaymentGatewayAccount;
 use App\Models\Sale;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
     public const VALID_METHODS = ['cash', 'qris', 'card', 'bank_transfer'];
+
+    public function __construct(
+        private PaymentGatewayInterface $gateway,
+        private SubAccountService $subAccountService,
+    ) {}
 
     /**
      * Create payments for a checkout transaction.
@@ -68,6 +76,9 @@ class PaymentService
                 }
             }
 
+            $isCash = $pay['payment_method'] === 'cash';
+            $gateway = config('payments.default_gateway', 'manual');
+
             $payment = new Payment;
             $payment->tenant_id = $tenantId;
             $payment->sale_id = $sale->id;
@@ -79,7 +90,52 @@ class PaymentService
             $payment->status = 'success';
             $payment->metadata = $pay['metadata'] ?? null;
             $payment->payment_date = now();
-            $payment->save();
+
+            if (!$isCash && $gateway === 'xendit') {
+                $account = $this->subAccountService->getActive($sale->tenant);
+
+                if (!$account || $account->status !== 'active') {
+                    throw new \DomainException('Gateway not active for tenant');
+                }
+
+                $result = $this->gateway->createCharge([
+                    'payment_method' => $pay['payment_method'],
+                    'amount' => (float) $pay['amount'],
+                    'reference_id' => $sale->sale_number . '-' . ($idempotencyKey ?? uniqid()),
+                    'idempotency_key' => $idempotencyKey ?? uniqid(),
+                    'for_user_id' => $sale->tenant->xendit_user_id,
+                    'fee_rule' => $sale->tenant->xendit_fee_rule_id,
+                    'description' => 'Payment for ' . $sale->sale_number,
+                    'metadata' => [
+                        'sale_id' => $sale->id,
+                        'tenant_id' => $tenantId,
+                    ],
+                ]);
+
+                $payment->status = 'pending';
+                $payment->gateway_transaction_id = $result['gateway_transaction_id'];
+                $payment->gateway_status = $result['gateway_status'];
+                $payment->gateway_response = $result['gateway_response'];
+                $payment->expires_at = $result['expires_at'];
+                $payment->gateway_account_id = $account->gateway_account_id;
+                $payment->metadata = $result['metadata'];
+                $payment->payment_date = null;
+            }
+
+            try {
+                $payment->save();
+            } catch (QueryException $e) {
+                // Race condition: another request inserted same key/reference between check and insert
+                if ($e->errorInfo[1] === 1062) {
+                    if ($idempotencyKey) {
+                        throw new \DomainException("Idempotency key already used: {$idempotencyKey}");
+                    }
+                    if ($reference) {
+                        throw new \DomainException("Payment reference already exists: {$reference}");
+                    }
+                }
+                throw $e;
+            }
 
             $created[] = $payment;
         }
@@ -159,6 +215,9 @@ class PaymentService
             }
 
             // Create payment
+            $isCash = $data['payment_method'] === 'cash';
+            $gateway = config('payments.default_gateway', 'manual');
+
             $payment = new Payment;
             $payment->tenant_id = $tenantId;
             $payment->sale_id = $sale->id;
@@ -170,17 +229,63 @@ class PaymentService
             $payment->status = 'success';
             $payment->metadata = $data['metadata'] ?? null;
             $payment->payment_date = now();
-            $payment->save();
 
-            // Update sale
-            $sale->paid_amount = $newPaid;
-            if ($newPaid >= $total) {
-                $sale->payment_status = 'paid';
-                $sale->change_amount = $newPaid - $total;
-            } else {
-                $sale->payment_status = 'partial';
+            if (!$isCash && $gateway === 'xendit') {
+                $account = $this->subAccountService->getActive($sale->tenant);
+
+                if (!$account || $account->status !== 'active') {
+                    throw new \DomainException('Gateway not active for tenant');
+                }
+
+                $result = $this->gateway->createCharge([
+                    'payment_method' => $data['payment_method'],
+                    'amount' => $amount,
+                    'reference_id' => $sale->sale_number . '-' . ($idempotencyKey ?? uniqid()),
+                    'idempotency_key' => $idempotencyKey ?? uniqid(),
+                    'for_user_id' => $sale->tenant->xendit_user_id,
+                    'fee_rule' => $sale->tenant->xendit_fee_rule_id,
+                    'description' => 'Payment for ' . $sale->sale_number,
+                    'metadata' => [
+                        'sale_id' => $sale->id,
+                        'tenant_id' => $tenantId,
+                    ],
+                ]);
+
+                $payment->status = 'pending';
+                $payment->gateway_transaction_id = $result['gateway_transaction_id'];
+                $payment->gateway_status = $result['gateway_status'];
+                $payment->gateway_response = $result['gateway_response'];
+                $payment->expires_at = $result['expires_at'];
+                $payment->gateway_account_id = $account->gateway_account_id;
+                $payment->metadata = $result['metadata'];
+                $payment->payment_date = null;
             }
-            $sale->save();
+
+            try {
+                $payment->save();
+            } catch (QueryException $e) {
+                if ($e->errorInfo[1] === 1062) {
+                    if ($idempotencyKey) {
+                        throw new \DomainException("Idempotency key already used: {$idempotencyKey}");
+                    }
+                    if ($reference) {
+                        throw new \DomainException("Payment reference already exists: {$reference}");
+                    }
+                }
+                throw $e;
+            }
+
+            // Update sale (only for synchronous/cash payments; async gateway updated by webhook)
+            if ($payment->status === 'success') {
+                $sale->paid_amount = $newPaid;
+                if ($newPaid >= $total) {
+                    $sale->payment_status = 'paid';
+                    $sale->change_amount = $newPaid - $total;
+                } else {
+                    $sale->payment_status = 'partial';
+                }
+                $sale->save();
+            }
 
             return $payment;
         });

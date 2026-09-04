@@ -4,7 +4,7 @@ services:
     container_name: pos_saas_mysql
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "3310:3306"
     environment:
       MYSQL_DATABASE: pos_saas
       MYSQL_ROOT_PASSWORD: root
@@ -19,6 +19,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: pos_saas_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pos_saas
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -39,6 +55,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - pos_saas
 
@@ -50,6 +68,8 @@ services:
     restart: unless-stopped
     ports:
       - "5173:5173"
+    environment:
+      VITE_API_TARGET: http://backend:8000
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -60,6 +80,7 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
 
 networks:
   pos_saas:

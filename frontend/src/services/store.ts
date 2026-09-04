@@ -1,5 +1,5 @@
 import api from '@/lib/api'
-import type { Store } from '@/types'
+import type { Store, ReceiptSettings } from '@/types'
 
 export const storeService = {
   list: () => api.get<{ stores: Store[] }>('/stores').then((r) => r.data.stores),
@@ -12,4 +12,10 @@ export const storeService = {
 
   update: (id: number, data: Partial<Store>) =>
     api.put<{ message: string; store: Store }>(`/stores/${id}`, data).then((r) => r.data.store),
+
+  getReceiptSettings: (id: number) =>
+    api.get<ReceiptSettings | null>(`/stores/${id}/receipt-settings`).then((r) => r.data),
+
+  updateReceiptSettings: (id: number, data: ReceiptSettings) =>
+    api.put<ReceiptSettings>(`/stores/${id}/receipt-settings`, data).then((r) => r.data),
 }

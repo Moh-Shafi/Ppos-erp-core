@@ -52,6 +52,14 @@ class StoreController extends Controller
             'address' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'sometimes|boolean',
+            'receipt_settings' => 'nullable|array',
+            'receipt_settings.header_text' => 'nullable|string|max:500',
+            'receipt_settings.footer_text' => 'nullable|string|max:500',
+            'receipt_settings.show_cashier' => 'nullable|boolean',
+            'receipt_settings.show_customer' => 'nullable|boolean',
+            'receipt_settings.show_qr_code' => 'nullable|boolean',
+            'receipt_settings.paper_width' => 'nullable|string|max:10',
+            'receipt_settings.logo_url' => 'nullable|string|max:500',
         ]);
 
         $store->update($validated);
@@ -70,5 +78,32 @@ class StoreController extends Controller
         return response()->json([
             'message' => 'Store deleted successfully',
         ]);
+    }
+
+    public function getReceiptSettings(int $id)
+    {
+        $store = Store::findOrFail($id);
+
+        return response()->json($store->receipt_settings);
+    }
+
+    public function updateReceiptSettings(Request $request, int $id)
+    {
+        $store = Store::findOrFail($id);
+
+        $validated = $request->validate([
+            'header_text' => 'nullable|string|max:500',
+            'footer_text' => 'nullable|string|max:500',
+            'show_cashier' => 'nullable|boolean',
+            'show_customer' => 'nullable|boolean',
+            'show_qr_code' => 'nullable|boolean',
+            'paper_width' => 'nullable|string|max:10',
+            'logo_url' => 'nullable|string|max:500',
+        ]);
+
+        $store->receipt_settings = $validated;
+        $store->save();
+
+        return response()->json($store->fresh()->receipt_settings);
     }
 }

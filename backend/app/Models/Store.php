@@ -12,10 +12,13 @@ class Store extends Model
 {
     use HasFactory, BelongsToTenant;
 
-    protected $fillable = ['name', 'code', 'address', 'phone', 'is_active'];
+    protected $fillable = ['name', 'code', 'address', 'phone', 'is_active', 'city', 'province', 'postal_code', 'email', 'is_headquarters', 'settings', 'receipt_settings'];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_headquarters' => 'boolean',
+        'settings' => 'array',
+        'receipt_settings' => 'array',
     ];
 
     public function tenant(): BelongsTo

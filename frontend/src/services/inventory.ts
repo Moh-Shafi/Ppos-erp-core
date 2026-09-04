@@ -32,6 +32,10 @@ interface TransferData {
   note?: string
 }
 
+interface InventorySettings {
+  stock_valuation_method: 'fifo' | 'lifo' | 'average'
+}
+
 export const inventoryService = {
   list: (params?: InventoryParams) =>
     api.get<PaginatedResponse<Inventory>>('/inventory', { params }).then((r) => r.data),
@@ -59,4 +63,10 @@ export const inventoryService = {
         in_movement: InventoryMovement
       }>('/inventory/transfer', data)
       .then((r) => r.data),
+
+  getSettings: () =>
+    api.get<InventorySettings>('/inventory/settings').then((r) => r.data),
+
+  updateSettings: (data: Partial<InventorySettings>) =>
+    api.put<{ message: string; settings: InventorySettings }>('/inventory/settings', data).then((r) => r.data),
 }

@@ -13,6 +13,12 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  const storeId = localStorage.getItem('current_store_id')
+  if (storeId) {
+    config.headers['X-Store-Id'] = storeId
+  }
+
   return config
 })
 

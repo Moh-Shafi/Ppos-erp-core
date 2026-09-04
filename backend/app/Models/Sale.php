@@ -16,9 +16,12 @@ class Sale extends Model
         'store_id',
         'cashier_id',
         'customer_id',
+        'price_list_id',
         'sale_number',
         'status',
         'payment_status',
+        'hold_status',
+        'held_at',
         'sale_date',
         'subtotal',
         'discount',
@@ -26,17 +29,25 @@ class Sale extends Model
         'total',
         'paid_amount',
         'change_amount',
+        'refunded_amount',
+        'refund_status',
         'notes',
+        'table_id',
+        'appointment_id',
     ];
+
+    protected $hidden = ['tenant_id'];
 
     protected $casts = [
         'sale_date' => 'datetime',
+        'held_at' => 'datetime',
         'subtotal' => 'decimal:2',
         'discount' => 'decimal:2',
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'change_amount' => 'decimal:2',
+        'refunded_amount' => 'decimal:2',
     ];
 
     public function tenant(): BelongsTo
@@ -59,6 +70,11 @@ class Sale extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function priceList(): BelongsTo
+    {
+        return $this->belongsTo(PriceList::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class);
@@ -67,6 +83,11 @@ class Sale extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(SaleRefund::class);
     }
 
     public function isPaid(): bool
@@ -97,5 +118,20 @@ class Sale extends Model
     public function successfulPayments(): HasMany
     {
         return $this->hasMany(Payment::class)->where('status', 'success');
+    }
+
+    public function table(): BelongsTo
+    {
+        return $this->belongsTo(RestaurantTable::class, 'table_id');
+    }
+
+    public function appointment(): BelongsTo
+    {
+        return $this->belongsTo(Appointment::class);
+    }
+
+    public function billSplits(): HasMany
+    {
+        return $this->hasMany(BillSplit::class);
     }
 }

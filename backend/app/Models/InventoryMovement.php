@@ -22,6 +22,8 @@ class InventoryMovement extends Model
         'reference_type',
         'reference_id',
         'note',
+        'batch_id',
+        'reason_id',
     ];
 
     protected $casts = [
@@ -53,5 +55,15 @@ class InventoryMovement extends Model
     public function reference(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(StockBatch::class);
+    }
+
+    public function reason(): BelongsTo
+    {
+        return $this->belongsTo(StockAdjustmentReason::class, 'reason_id');
     }
 }

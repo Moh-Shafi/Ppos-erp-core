@@ -42,3 +42,8 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+# Test & Cache artifacts
+backend/.phpunit.result.cache
+backend/pos_saas
+frontend/test-results/

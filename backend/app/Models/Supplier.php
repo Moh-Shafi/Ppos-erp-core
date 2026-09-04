@@ -36,4 +36,14 @@ class Supplier extends Model
     {
         return $this->hasMany(Purchase::class);
     }
+
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(SupplierRating::class);
+    }
+
+    public function grns(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptNote::class);
+    }
 }

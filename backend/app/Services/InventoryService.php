@@ -86,12 +86,14 @@ class InventoryService
         int $delta,
         ?Model $reference = null,
         ?string $note = null,
+        ?int $batchId = null,
+        ?int $reasonId = null,
     ): InventoryMovement {
         if ($delta === 0) {
             throw new \InvalidArgumentException('Delta cannot be 0');
         }
 
-        return $this->applyMovement($store, $product, $delta, 'adjustment', $reference, $note);
+        return $this->applyMovement($store, $product, $delta, 'adjustment', $reference, $note, $batchId, $reasonId);
     }
 
     /**
@@ -113,13 +115,15 @@ class InventoryService
         string $type,
         ?Model $reference,
         ?string $note,
+        ?int $batchId = null,
+        ?int $reasonId = null,
     ): InventoryMovement {
         $this->validateOwnership($store, $product);
 
         $user = Auth::user();
         $tenantId = $user->tenant_id;
 
-        return DB::transaction(function () use ($store, $product, $signedQuantity, $type, $reference, $note, $user, $tenantId) {
+        return DB::transaction(function () use ($store, $product, $signedQuantity, $type, $reference, $note, $user, $tenantId, $batchId, $reasonId) {
             // Lock the inventory row for update to prevent race conditions
             $inventory = Inventory::withoutTenantScope()
                 ->where('tenant_id', $tenantId)
@@ -164,6 +168,8 @@ class InventoryService
             $movement->before_quantity = $beforeQuantity;
             $movement->after_quantity = $afterQuantity;
             $movement->note = $note;
+            $movement->batch_id = $batchId;
+            $movement->reason_id = $reasonId;
 
             if ($reference) {
                 $movement->reference_type = get_class($reference);

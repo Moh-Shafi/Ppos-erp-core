@@ -1,5 +1,5 @@
 import api from '@/lib/api'
-import type { AuthResponse, User } from '@/types'
+import type { EnhancedAuthResponse, User, ModuleConfigResponse } from '@/types'
 
 export const authService = {
   register: (data: {
@@ -8,12 +8,16 @@ export const authService = {
     password: string
     password_confirmation: string
     store_name: string
-  }) => api.post<AuthResponse>('/auth/register', data).then((r) => r.data),
+    business_type_id?: number
+  }) => api.post<EnhancedAuthResponse>('/auth/register', data).then((r) => r.data),
 
   login: (data: { email: string; password: string }) =>
-    api.post<AuthResponse>('/auth/login', data).then((r) => r.data),
+    api.post<EnhancedAuthResponse>('/auth/login', data).then((r) => r.data),
 
   logout: () => api.post('/auth/logout').then((r) => r.data),
 
-  me: () => api.get<{ user: User }>('/auth/me').then((r) => r.data.user),
+  me: () => api.get<ModuleConfigResponse & { user: User }>('/auth/me').then((r) => r.data),
+
+  getBusinessTypes: () =>
+    api.get<{ data: import('@/types').BusinessType[] }>('/business-types').then((r) => r.data.data),
 }

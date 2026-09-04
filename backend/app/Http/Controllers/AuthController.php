@@ -2,58 +2,53 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Role;
-use App\Models\Store;
-use App\Models\Tenant;
-use App\Models\User;
+use App\Models\BusinessType;
+use App\Services\AuditService;
+use App\Services\RegistrationService;
+use App\Services\SecurityService;
+use App\Services\TwoFactorService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        protected RegistrationService $registrationService,
+        protected AuditService $auditService,
+        protected SecurityService $securityService,
+        protected TwoFactorService $twoFactorService,
+    ) {}
+
     public function register(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::min(config('security.password.min_length', 12))
+                ->mixedCase()
+                ->numbers()
+                ->symbols()],
             'store_name' => 'required|string|max:255',
+            'business_type_id' => 'nullable|integer|exists:business_types,id',
         ]);
 
-        $user = DB::transaction(function () use ($validated) {
-            $tenant = Tenant::create([
-                'name' => $validated['store_name'],
-                'slug' => str()->slug($validated['store_name']),
-            ]);
-
-            $ownerRole = Role::where('slug', 'owner')->first();
-
-            $user = User::create([
-                'tenant_id' => $tenant->id,
-                'role_id' => $ownerRole?->id,
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => $validated['password'],
-            ]);
-
-            $store = new Store;
-            $store->tenant_id = $tenant->id;
-            $store->name = $validated['store_name'];
-            $store->code = 'STR-001';
-            $store->is_active = true;
-            $store->save();
-
-            return $user;
-        });
+        $user = $this->registrationService->register($validated);
 
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        $config = $this->registrationService->getConfig($user->tenant_id, $user->id);
 
         return response()->json([
             'message' => 'Registration successful',
             'token' => $token,
             'user' => $user->load(['tenant', 'role']),
+            'modules' => $config['modules'],
+            'features' => $config['features'],
+            'permissions' => $config['permissions'],
+            'stores' => $config['stores'],
+            'business_profile' => $config['business_profile'],
         ], 201);
     }
 
@@ -64,25 +59,53 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = \App\Models\User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            if (!app()->environment('testing', 'local')) {
+                $this->securityService->recordFailedAttempt($request->email);
+            }
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
+        if (!app()->environment('testing', 'local')) {
+            $this->securityService->resetFailedAttempts($request->email);
+        }
+
+        if ($user->two_factor_enabled) {
+            $tempToken = \App\Http\Controllers\TwoFactorController::generateTempToken($user->id);
+
+            return response()->json([
+                '2fa_required' => true,
+                '2fa_token' => $tempToken,
+                'expires_in' => config('security.two_factor.temp_token_ttl', 300),
+            ]);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        $this->auditService->log('login', 'User', $user->id, null, null, $user->id, $user->tenant_id);
+
+        $config = $this->registrationService->getConfig($user->tenant_id, $user->id);
 
         return response()->json([
             'message' => 'Login successful',
             'token' => $token,
             'user' => $user->load(['tenant', 'role']),
+            'modules' => $config['modules'],
+            'features' => $config['features'],
+            'permissions' => $config['permissions'],
+            'stores' => $config['stores'],
+            'business_profile' => $config['business_profile'],
         ]);
     }
 
     public function logout(Request $request)
     {
+        $this->auditService->log('logout', 'User', $request->user()->id);
+
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
@@ -92,8 +115,16 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
+        $user = $request->user();
+        $config = $this->registrationService->getConfig($user->tenant_id, $user->id);
+
         return response()->json([
-            'user' => $request->user()->load(['tenant', 'role']),
+            'user' => $user->load(['tenant', 'role']),
+            'modules' => $config['modules'],
+            'features' => $config['features'],
+            'permissions' => $config['permissions'],
+            'stores' => $config['stores'],
+            'business_profile' => $config['business_profile'],
         ]);
     }
 }

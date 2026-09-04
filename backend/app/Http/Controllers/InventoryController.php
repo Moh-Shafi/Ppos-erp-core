@@ -6,6 +6,7 @@ use App\Models\Inventory;
 use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\Store;
+use App\Models\Tenant;
 use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -75,6 +76,8 @@ class InventoryController extends Controller
             ],
             'delta' => 'required|integer|not_in:0',
             'note' => 'nullable|string|max:500',
+            'reason_id' => 'nullable|integer|exists:stock_adjustment_reasons,id',
+            'batch_id' => 'nullable|integer|exists:stock_batches,id',
         ]);
 
         $store = Store::findOrFail($validated['store_id']);
@@ -87,6 +90,8 @@ class InventoryController extends Controller
                 $validated['delta'],
                 null,
                 $validated['note'] ?? null,
+                $validated['batch_id'] ?? null,
+                $validated['reason_id'] ?? null,
             );
 
             return response()->json([
@@ -171,5 +176,35 @@ class InventoryController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    public function getSettings(Request $request)
+    {
+        $tenant = Tenant::findOrFail($request->user()->tenant_id);
+        $settings = $tenant->settings ?? [];
+
+        return response()->json([
+            'stock_valuation_method' => $settings['stock_valuation_method'] ?? 'average',
+        ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'stock_valuation_method' => 'required|in:fifo,lifo,average',
+        ]);
+
+        $tenant = Tenant::findOrFail($request->user()->tenant_id);
+        $settings = $tenant->settings ?? [];
+        $settings['stock_valuation_method'] = $validated['stock_valuation_method'];
+        $tenant->settings = $settings;
+        $tenant->save();
+
+        return response()->json([
+            'message' => 'Inventory settings updated successfully',
+            'settings' => [
+                'stock_valuation_method' => $validated['stock_valuation_method'],
+            ],
+        ]);
     }
 }
